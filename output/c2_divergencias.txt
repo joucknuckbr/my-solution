@@ -1,7 +1,7 @@
 Linha 8 Erro desconhecido. Acionar equipe de TI 
 Linha 32 Venda cancelada 
 Linha 37 Erro desconhecido. Acionar equipe de TI 
-0Linha 85 Código de Produto não encontrado 13112
+Linha 85 Código de Produto não encontrado 13112
 Linha 88 Venda não finalizada 
 Linha 121 Código de Produto não encontrado 13210
 Linha 222 Venda cancelada 

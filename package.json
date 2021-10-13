@@ -21,6 +21,6 @@
   "homepage": "https://github.com/intelitrader/quero-ser#readme",
   "dependencies": {
     "express": "^4.17.1",
-    "xmlhttprequest": "^1.8.0"
+    "prompt": "^1.2.0"
   }
 }
