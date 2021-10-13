@@ -4,13 +4,11 @@ const express = require('express');
 var listP = new Array();
 var listPQntd = new Array();
 var listV = new Array();
-var listT = new Array();
 var listC = new Array();
-var listD = new Array();
+
+var flag = 0;
 
 const app = express();
-var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -63,9 +61,9 @@ function lerArquivo(caminhoArquivo) {
                         ind.push(pos);
                     }
                     
-                    product.codP = el.slice(0,-(el.length-5));
-                    product.qntdEstIniP = el.slice(6,-(el.length-ind[1]));
-                    product.qntdMinCo = el.slice(ind[1]+1);
+                    product.codP = Number(el.slice(0,-(el.length-5)));
+                    product.qntdEstIniP = Number(el.slice(6,-(el.length-ind[1])));
+                    product.qntdMinCo = Number(el.slice(ind[1]+1));
                     listP.unshift(product);
                     
                     productQntd.codP = Number(el.slice(0,-(el.length-5)));
@@ -78,9 +76,7 @@ function lerArquivo(caminhoArquivo) {
                 });
                 
                 // listPQntd.forEach((el,index)=>{
-                //     console.log("cod: "+el.codP);
-                //     console.log("qntd est: "+el.qntdEstIniP);
-                //     console.log("qntd min: "+el.qntdMinCo);
+                //     console.log(el);
                 // });
                 
             }else{
@@ -95,22 +91,29 @@ function lerArquivo(caminhoArquivo) {
                     var pos = 0;
                     
                     while ( pos != -1 ) {
+
                         pos = el.indexOf(";", pos + 1);
                         ind.push(pos);
+
                     }
                     
-                    sells.codP = el.slice(0,-(el.length-5));
-                    sells.qntdV = el.slice(6,-(el.length-ind[1]));
-                    sells.sitV = el.slice(ind[1]+1,-(el.length-ind[2]));
-                    sells.qntdMinCo = el.slice(ind[2]+1);
-                    listV.unshift(sells);
+                    sells.codP = Number(el.slice(0,-(el.length-5)));
+                    sells.qntdV = Number(el.slice(6,-(el.length-ind[1])));
+                    sells.sitV = Number(el.slice(ind[1]+1,-(el.length-ind[2])));
+                    sells.canal_V = Number(el.slice(ind[2]+1));
+                    listV.push(sells);
                     
                 });
+
             }
             
             err ? reject(err) : resolve(data);
-            tranferencias();
             
+            if(flag !=0){
+                tranferencias();
+                divergencias();
+            }
+            flag = 1;
         });
         
     });
@@ -129,36 +132,57 @@ function tranferencias(){
     '\t\t\t\t\t\t\t\t\t\tVendas\t\t\t\t\tArm p/ CO\n';
     
     listV.forEach((el)=>{
+
         if(el.sitV == 100 || el.sitV == 102) {
+
             prodV = Number(el.codP);
             i=0;
+
             while(i<listPQntd.length){
-                if(listPQntd[i].codP === prodV){
+
+                if(listPQntd[i].codP == prodV){
                     break;
                 }
+
                 i++;
+
             }
+
             if(i<listPQntd.length){
+
                 listPQntd[i].qntV += Number(el.qntdV);
+
             }
         }
     });
     
     listPQntd.forEach((el,index)=>{
+
         el.estV = listP[index].qntdEstIniP - el.qntV;
+
         if(el.estV < listP[index].qntdMinCo){
+
             el.necCo = listP[index].qntdMinCo - el.estV;
+
             if(el.necCo > 1 && el.necCo < 10){
+
                 el.transfCo = 10;
+
             }else{
+
                 el.transfCo = el.necCo;
+
             }
+
         }else{
+
             el.necCo = 0;
+
         }
     });
     
     listP.forEach((el,index)=>{
+
         prodDTO = el.codP + '\t\t' + el.qntdEstIniP + ' \t' + el.qntdMinCo + ' \t' + listPQntd[index].qntV + ' \t\t' + listPQntd[index].estV + '  \t\t' 
         + listPQntd[index].necCo + '   \t\t' + listPQntd[index].transfCo + '\n' + prodDTO;
         
@@ -172,6 +196,56 @@ function tranferencias(){
     });
     
     return;
+}
+
+function divergencias(){
+    
+    var data = new String();
+    var prodV = Number(0);
+    var i = Number(0);
+    
+    listV.forEach((el,index)=>{
+
+        i=0;
+        prodV = Number(el.codP);
+        
+        while(i < listP.length){
+
+            if(prodV == listP[i].codP){
+                break;
+            }
+
+            i++;
+
+            if(i == listP.length){
+                data += 'Linha ' + Number(index+1) + ' Código de Produto não encontrado ' + el.codP + '\n';
+            }
+
+        }
+
+        switch (el.sitV) {
+
+            case 135:
+                data +='Linha ' + Number(index+1) + ' Venda cancelada ' + '\n';
+                break;
+
+            case 190:
+                data +='Linha ' + Number(index+1) + ' Venda não finalizada ' + '\n';
+                break;
+
+            case 999:
+                data +='Linha ' + Number(index+1) + ' Erro desconhecido. Acionar equipe de TI ' + '\n';
+                break;
+
+        }
+        
+    });
+    
+    fs.writeFile('divergencias.txt', data, (err) => {
+        if (err) throw err;
+        console.log('O arquivo foi criado!');
+    });
+    
 }
 
 app.listen(3000);
